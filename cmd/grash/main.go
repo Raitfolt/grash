@@ -51,7 +51,7 @@ func runServer(ctx context.Context, log *zap.Logger) error {
 		}
 	}()
 
-	log.Info("listening", zap.String("port", listenAddr))
+	log.Info("listening", zap.String("address", listenAddr))
 	<-ctx.Done()
 
 	log.Info("shutting down server gracefully")
