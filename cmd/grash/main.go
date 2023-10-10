@@ -6,13 +6,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/Raitfolt/grash/internal/closer"
+	"github.com/Raitfolt/grash/internal/config"
 	"github.com/Raitfolt/grash/internal/logger"
-	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
 
@@ -24,37 +23,15 @@ func getEnv(key string, defaultVal string) string {
 }
 
 func main() {
+	cfg := config.MustLoad()
+
 	logger := logger.New()
 	defer logger.Sync()
-
-	if err := godotenv.Load("../../config/vars.env"); err != nil {
-		logger.Warn(err.Error())
-	}
-
-	listenAddr := getEnv("ADDRESS", "")
-	if listenAddr == "" {
-		logger.Error("Unable to find ADDRESS variable")
-	} else {
-		logger.Info("Env", zap.String("Listen address", listenAddr))
-	}
-
-	shutdownTimeoutEnv := getEnv("SHUTDOWN_TIMEOUT", "")
-	var shutdownTimeout time.Duration
-	if shutdownTimeoutEnv == "" {
-		logger.Error("Unable to find SHUTDOWN_TIMEOUT variable")
-	} else {
-		secs, err := strconv.Atoi(shutdownTimeoutEnv)
-		if err != nil {
-			logger.Error("Can't convert SHUTDOWN_TIMEOUT to int")
-		}
-		shutdownTimeout = time.Second * time.Duration(secs)
-		logger.Info("Env", zap.Any("Shutdown timeout", shutdownTimeout))
-	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	if err := runServer(ctx, logger, listenAddr, shutdownTimeout); err != nil {
+	if err := runServer(ctx, logger, cfg.Address, cfg.ShutdownTimeout); err != nil {
 		logger.Fatal(err.Error())
 	}
 }

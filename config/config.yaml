@@ -1,0 +1,4 @@
+env: "prod"
+shutdown_timeout: 5s
+http_server:
+  address: "0.0.0.0:8080"
