@@ -7,19 +7,23 @@ import (
 	"sync"
 )
 
-type Closer struct {
+type closer struct {
 	mu    sync.Mutex
 	funcs []Func
 }
 
-func (c *Closer) Add(f Func) {
+func New() *closer {
+	return &closer{}
+}
+
+func (c *closer) Add(f Func) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	c.funcs = append(c.funcs, f)
 }
 
-func (c *Closer) Close(ctx context.Context) error {
+func (c *closer) Close(ctx context.Context) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
