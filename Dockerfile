@@ -1,14 +1,18 @@
-FROM golang:1.21.2
+FROM golang:1.21-alpine as build
 
-WORKDIR /app
+COPY . /src
 
-COPY go.mod go.sum ./
+WORKDIR /src
 RUN go mod download
 
-COPY *.go ./
+WORKDIR /src/cmd/grash
+RUN CGO_ENABLED=0 GOOS=linux go build -o /grash/
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /grash
+FROM ubuntu:latest
 
+COPY --from=build /grash/grash /grash/
+COPY --from=build /src/config/config.yaml /grash/
 EXPOSE 8080
 
-CMD [ "/grash" ]
+CMD ["export CONFIG_PATH=/grash/config.yaml"]
+ENTRYPOINT ["/grash/grash"]

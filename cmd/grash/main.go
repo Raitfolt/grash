@@ -23,10 +23,10 @@ func getEnv(key string, defaultVal string) string {
 }
 
 func main() {
-	cfg := config.MustLoad()
-
 	logger := logger.New()
 	defer logger.Sync()
+
+	cfg := config.MustLoad(logger)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
