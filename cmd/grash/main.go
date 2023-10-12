@@ -60,7 +60,7 @@ func runServer(ctx context.Context, log *zap.Logger, listenAddr string, shutdown
 	// зависнет на время, достаточное для выхода за таймаут, Closer не вызовет
 	// все последующие, т.к. при выходе за таймаут, процедура завершения программы
 	// мгновенно останавливается.
-	if err := c.Close(shutdownCtx); err != nil {
+	if err := c.Close(shutdownCtx, log); err != nil {
 		return fmt.Errorf("closer: %v", err)
 	}
 

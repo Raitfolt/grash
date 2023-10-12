@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+
+	"go.uber.org/zap"
 )
 
 type closer struct {
@@ -23,7 +25,7 @@ func (c *closer) Add(f Func) {
 	c.funcs = append(c.funcs, f)
 }
 
-func (c *closer) Close(ctx context.Context) error {
+func (c *closer) Close(ctx context.Context, log *zap.Logger) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -32,12 +34,24 @@ func (c *closer) Close(ctx context.Context) error {
 		complete = make(chan struct{}, 1)
 	)
 
+	log.Info("ready to execute close funcs")
+
 	go func() {
+		var wg sync.WaitGroup
+		wg.Add(len(c.funcs))
+
 		for _, f := range c.funcs {
-			if err := f(ctx); err != nil {
-				msgs = append(msgs, fmt.Sprintf("[!] %v", err))
-			}
+			go func() {
+				f := f
+				if err := f(ctx); err != nil {
+					// TODO: set mutex
+					msgs = append(msgs, fmt.Sprintf("[!] %v", err))
+				}
+
+				wg.Done()
+			}()
 		}
+		wg.Wait()
 		complete <- struct{}{}
 	}()
 
