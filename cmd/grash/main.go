@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -14,13 +13,6 @@ import (
 	"github.com/Raitfolt/grash/internal/logger"
 	"go.uber.org/zap"
 )
-
-func getEnv(key string, defaultVal string) string {
-	if value, exists := os.LookupEnv(key); exists {
-		return value
-	}
-	return defaultVal
-}
 
 func main() {
 	logger := logger.New()
