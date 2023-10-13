@@ -40,7 +40,30 @@ func runServer(ctx context.Context, log *zap.Logger, listenAddr string, shutdown
 
 	mux.Handle("/", handleIndex())
 
-	c.Add(srv.Shutdown)
+	forClose := closer.Func{Name: "HTTP server", F: srv.Shutdown}
+	c.Add(forClose)
+
+	forClose = closer.Func{Name: "SQL connect", F: func(ctx context.Context) error {
+		time.Sleep(1700 * time.Millisecond)
+		return nil
+	}}
+	c.Add(forClose)
+
+	forClose = closer.Func{Name: "Redis connect", F: func(ctx context.Context) error {
+		time.Sleep(200 * time.Millisecond)
+		return nil
+	}}
+	c.Add(forClose)
+	forClose = closer.Func{Name: "RabbitMQ connect", F: func(ctx context.Context) error {
+		time.Sleep(600 * time.Millisecond)
+		return nil
+	}}
+	c.Add(forClose)
+	forClose = closer.Func{Name: "Another server", F: func(ctx context.Context) error {
+		time.Sleep(1200 * time.Millisecond)
+		return nil
+	}}
+	c.Add(forClose)
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {

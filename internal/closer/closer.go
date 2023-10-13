@@ -3,12 +3,12 @@ package closer
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 
 	"go.uber.org/zap"
 )
 
+// TODO add name to funcs
 type closer struct {
 	mu    sync.Mutex
 	funcs []Func
@@ -29,10 +29,7 @@ func (c *closer) Close(ctx context.Context, log *zap.Logger) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	var (
-		msgs     = make([]string, 0, len(c.funcs))
-		complete = make(chan struct{}, 1)
-	)
+	var complete = make(chan struct{}, 1)
 
 	log.Info("ready to execute close funcs")
 
@@ -41,17 +38,17 @@ func (c *closer) Close(ctx context.Context, log *zap.Logger) error {
 		wg.Add(len(c.funcs))
 
 		for _, f := range c.funcs {
-			go func() {
-				f := f
-				if err := f(ctx); err != nil {
-					// TODO: set mutex
-					msgs = append(msgs, fmt.Sprintf("[!] %v", err))
+			go func(f Func) {
+				if err := f.F(ctx); err != nil {
+					log.Error("closer", zap.String("error", err.Error()))
 				}
-
+				log.Info("closer", zap.String(f.Name, "was closed"))
 				wg.Done()
-			}()
+			}(f)
 		}
+
 		wg.Wait()
+		log.Info("graceful shutdown was done")
 		complete <- struct{}{}
 	}()
 
@@ -62,14 +59,10 @@ func (c *closer) Close(ctx context.Context, log *zap.Logger) error {
 		return fmt.Errorf("shutdown cancelled: %v", ctx.Err())
 	}
 
-	if len(msgs) > 0 {
-		return fmt.Errorf(
-			"shutdown finished with error(s): \n%s",
-			strings.Join(msgs, "\n"),
-		)
-	}
-
 	return nil
 }
 
-type Func func(ctx context.Context) error
+type Func struct {
+	Name string
+	F    func(ctx context.Context) error
+}
