@@ -15,10 +15,6 @@ func New() *zap.Logger {
 	if logPath == "" {
 		log.Fatal("LOG_PATH is not set")
 	}
-	// check if file exists
-	if _, err := os.Stat(logPath); os.IsNotExist(err) {
-		log.Fatal("config file does not exist", zap.String("path", logPath))
-	}
 
 	stdout := zapcore.AddSync(os.Stdout)
 
