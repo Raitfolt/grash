@@ -14,5 +14,6 @@ COPY --from=build /grash/grash /grash/
 COPY --from=build /src/config/config.yaml /grash/
 EXPOSE 8080
 
+ENV LOG_PATH=/grash/logs/grash.log
 ENV CONFIG_PATH=/grash/config.yaml
 ENTRYPOINT ["/grash/grash"]

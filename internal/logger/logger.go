@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"log"
 	"os"
 
 	"go.uber.org/zap"
@@ -9,11 +10,20 @@ import (
 )
 
 func New() *zap.Logger {
+
+	logPath := os.Getenv("LOG_PATH")
+	if logPath == "" {
+		log.Fatal("LOG_PATH is not set")
+	}
+	// check if file exists
+	if _, err := os.Stat(logPath); os.IsNotExist(err) {
+		log.Fatal("config file does not exist", zap.String("path", logPath))
+	}
+
 	stdout := zapcore.AddSync(os.Stdout)
 
 	file := zapcore.AddSync(&lumberjack.Logger{
-		//Filename:   "/grash/logs/app.log",
-		Filename:   "../../grash/logs/app.log",
+		Filename:   logPath,
 		MaxSize:    5,
 		MaxBackups: 5,
 		MaxAge:     7,
@@ -36,5 +46,9 @@ func New() *zap.Logger {
 		zapcore.NewCore(fileEncoder, file, level),
 	)
 
-	return zap.New(core)
+	result := zap.New(core)
+
+	result.Info("save logs to", zap.String("path", logPath))
+
+	return result
 }
