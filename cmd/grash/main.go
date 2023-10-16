@@ -104,6 +104,7 @@ func runServer(ctx context.Context, log *zap.Logger, listenAddr string, shutdown
 func handleIndex() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Hello, World!"))
+		d := time.Now().Format(time.RFC1123Z)
+		w.Write([]byte(d))
 	})
 }
