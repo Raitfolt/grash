@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os/signal"
 	"syscall"
@@ -30,12 +29,16 @@ func main() {
 }
 
 // Logging is custom middleware for logging all request
-func Logging(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+func Logging(next http.Handler, log *zap.Logger) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		next.ServeHTTP(w, req)
+		next.ServeHTTP(w, r)
 		t := time.Since(start).Nanoseconds()
-		log.Printf("%s %s %dns\n", req.Method, req.RequestURI, t)
+		log.Info("Request",
+			zap.String("method", r.Method),
+			zap.String("host", r.Host),
+			//TODO: add need headers to show
+			zap.Int64("time", t))
 	})
 }
 
@@ -44,7 +47,7 @@ func runServer(ctx context.Context, log *zap.Logger, listenAddr string, shutdown
 		mux = http.NewServeMux()
 		srv = &http.Server{
 			Addr:    listenAddr,
-			Handler: Logging(mux),
+			Handler: Logging(mux, log),
 		}
 		c = closer.New()
 	)
