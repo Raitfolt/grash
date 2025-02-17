@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os/signal"
 	"syscall"
@@ -14,17 +16,22 @@ import (
 	"go.uber.org/zap"
 )
 
-func main() {
-	logger := logger.New()
-	defer logger.Sync()
+// LOG_PATH='./' CONFIG_PATH="./config/config.yaml" go run cmd/grash/main.go
 
-	cfg := config.MustLoad(logger)
+func main() {
+	logr := logger.New()
+	defer func() {
+		if err := logr.Sync(); err != nil {
+			log.Fatal("logger sync is failed with error: %w", err)
+		}
+	}()
+	cfg := config.MustLoad(logr)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	if err := runServer(ctx, logger, cfg.Address, cfg.ShutdownTimeout); err != nil {
-		logger.Fatal(err.Error())
+	if err := runServer(ctx, logr, cfg.Address, cfg.ShutdownTimeout); err != nil {
+		logr.Fatal(err.Error())
 	}
 }
 
@@ -80,7 +87,7 @@ func runServer(ctx context.Context, log *zap.Logger, listenAddr string, shutdown
 	c.Add(forClose)
 
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatal("listen and serve:", zap.String("error", err.Error()))
 		}
 	}()
@@ -108,6 +115,9 @@ func handleIndex() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		d := time.Now().Format(time.RFC1123Z)
-		w.Write([]byte(d))
+		_, err := w.Write([]byte(d))
+		if err != nil {
+			http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+		}
 	})
 }

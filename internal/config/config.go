@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
@@ -23,6 +24,11 @@ func MustLoad(log *zap.Logger) *Config {
 	if configPath == "" {
 		log.Fatal("CONFIG_PATH is not set")
 	}
+	logAbsPath, err := filepath.Abs(configPath)
+	if err != nil {
+		log.Fatal("failed to resolve absolute path", zap.String("path", configPath), zap.Error(err))
+	}
+	log.Info("absolute config path", zap.String("path", logAbsPath))
 	// check if file exists
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		log.Fatal("config file does not exist", zap.String("path", configPath))
